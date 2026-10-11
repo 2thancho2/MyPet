@@ -41,11 +41,17 @@ function saveSettings() {
 }
 
 function broadcast() {
-  for (const w of BrowserWindow.getAllWindows()) w.webContents.send('settings:changed', settings);
+  for (const w of BrowserWindow.getAllWindows()) {
+    if (!w.isDestroyed()) w.webContents.send('settings:changed', settings);
+  }
 }
 
 function applySystemSettings() {
-  app.setLoginItemSettings({ openAtLogin: !!settings.launchAtLogin });
+  try {
+    app.setLoginItemSettings({ openAtLogin: !!settings.launchAtLogin });
+  } catch (err) {
+    console.error('자동 실행 설정 실패', err);
+  }
 }
 
 // ───────────── 창 ─────────────
@@ -80,13 +86,17 @@ function openSettings() {
     settingsWin.focus();
     return;
   }
+  const wa = screen.getPrimaryDisplay().workArea;
   settingsWin = new BrowserWindow({
-    width: 640,
-    height: 800,
-    title: '데스크톱 펫 설정',
+    width: 680,
+    height: Math.min(800, wa.height - 40),
+    title: 'MyPet 설정',
     autoHideMenuBar: true,
+    backgroundColor: '#ffffff',
+    alwaysOnTop: true,            // 투명 오버레이 창보다 항상 위에 떠서 클릭이 막히지 않게
     webPreferences: { preload: path.join(__dirname, 'preload.js') },
   });
+  settingsWin.setAlwaysOnTop(true, 'screen-saver');
   settingsWin.loadFile(path.join(__dirname, 'renderer', 'settings.html'));
   settingsWin.on('closed', () => { settingsWin = null; });
 }
@@ -104,10 +114,11 @@ function addDefaultPet() {
 }
 
 function createTray() {
-  let icon = nativeImage.createFromPath(path.join(__dirname, 'assets', 'tray.png'));
-  if (process.platform === 'darwin') icon = icon.resize({ width: 18, height: 18 });
+  // mac: tray.png(18px) + tray@2x.png(36px) 자동 선택 / Windows: 32px
+  const file = process.platform === 'win32' ? 'tray-win.png' : 'tray.png';
+  const icon = nativeImage.createFromPath(path.join(__dirname, 'assets', file));
   tray = new Tray(icon);
-  tray.setToolTip('Desktop Pet');
+  tray.setToolTip('MyPet');
   tray.setContextMenu(Menu.buildFromTemplate([
     { label: '설정 열기', click: openSettings },
     { label: '펫 추가', click: addDefaultPet },
@@ -123,17 +134,17 @@ ipcMain.handle('settings:get', () => settings);
 ipcMain.handle('settings:set', (_e, patch) => {
   settings = { ...settings, ...patch };
   saveSettings();
-  applySystemSettings();
-  broadcast();
+  broadcast();                 // 먼저 화면에 반영
+  applySystemSettings();       // 실패해도 위 동작에 영향 없음
   return settings;
 });
 
 ipcMain.on('ignore-mouse', (_e, ignore) => {
-  if (overlay) overlay.setIgnoreMouseEvents(ignore, { forward: true });
+  if (overlay && !overlay.isDestroyed()) overlay.setIgnoreMouseEvents(ignore, { forward: true });
 });
 
 ipcMain.on('note:send', (_e, petId, text) => {
-  if (overlay) overlay.webContents.send('note', petId, text);
+  if (overlay && !overlay.isDestroyed()) overlay.webContents.send('note', petId, text);
 });
 
 ipcMain.on('open-settings', () => openSettings());
@@ -142,6 +153,7 @@ ipcMain.on('quit', () => app.quit());
 // ───────────── 앱 시작 ─────────────
 app.whenReady().then(() => {
   settingsPath = path.join(app.getPath('userData'), 'settings.json');
+  const firstRun = !fs.existsSync(settingsPath);
   loadSettings();
   applySystemSettings();
   if (process.platform === 'darwin' && app.dock) app.dock.hide(); // Dock 아이콘 숨김
@@ -149,6 +161,7 @@ app.whenReady().then(() => {
   createTray();
   screen.on('display-metrics-changed', fitOverlay);
   screen.on('display-removed', fitOverlay);
+  if (firstRun) openSettings();   // 처음 실행하면 설정 창을 바로 보여줌
 });
 
 // 창이 모두 닫혀도 트레이로 계속 실행
