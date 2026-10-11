@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'">
+  <title>데스크톱 펫 설정</title>
+  <link rel="stylesheet" href="settings.css">
+</head>
+<body>
+  <h1>🐾 데스크톱 펫 설정</h1>
+
+  <section>
+    <h2>내 펫들</h2>
+    <div id="petList"></div>
+    <button id="addPet">+ 기본 펫 추가</button>
+  </section>
+
+  <section>
+    <h2>📷 사진으로 펫 만들기</h2>
+    <p class="hint">사진 1장이면 충분해요. 신남/자는 모습 사진을 추가하면 상황에 맞게 바뀝니다.<br>
+      사진은 이 컴퓨터에만 저장되고 외부로 전송되지 않아요.</p>
+    <label class="field">이름 <input id="photoName" type="text" placeholder="예: 뭉치"></label>
+    <label class="field">기본 모습 (필수) <input id="photoIdle" type="file" accept="image/*"></label>
+    <label class="field">신난 모습 (선택) <input id="photoExcited" type="file" accept="image/*"></label>
+    <label class="field">자는 모습 (선택) <input id="photoSleep" type="file" accept="image/*"></label>
+    <label class="check"><input id="photoCircle" type="checkbox" checked> 원형 스티커로 자르기 (배경이 이미 지워진 PNG라면 끄세요)</label>
+    <button id="makePhotoPet">펫 만들기</button>
+    <span id="photoMsg" class="msg"></span>
+  </section>
+
+  <section>
+    <h2>동작 설정</h2>
+    <div id="controls"></div>
+  </section>
+
+  <section>
+    <h2>✍️ 쪽지 보내기</h2>
+    <div class="row">
+      <select id="noteTarget"></select>
+      <input id="noteText" type="text" maxlength="100" placeholder="종이에 적을 메시지">
+      <button id="sendNote">보내기</button>
+    </div>
+  </section>
+
+  <script src="settings.js"></script>
+</body>
+</html>

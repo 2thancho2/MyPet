@@ -1,0 +1,17 @@
+{
+  "name": "desktop-pet",
+  "version": "1.0.0",
+  "description": "데스크톱 펫",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder"
+  },
+  "build": {
+    "appId": "com.example.desktoppet",
+    "productName": "Desktop Pet",
+    "files": ["main.js", "preload.js", "renderer/**", "assets/**"],
+    "mac": { "target": "dmg", "category": "public.app-category.entertainment", "icon": "assets/icon.png" },
+    "win": { "target": "nsis", "icon": "assets/icon.png" }
+  }
+}
