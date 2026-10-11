@@ -1,336 +1,64 @@
-'use strict';
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'">
+  <title>MyPet 설정</title>
+  <link rel="stylesheet" href="settings.css">
+</head>
+<body>
+  <h1>MyPet 설정</h1>
+  <div id="errBox" hidden></div>
 
-const bridge = window.api;   // 'api'라는 이름으로 다시 선언하면 충돌해서 실행이 멈춤
-let S = null;
-let skipRender = 0;
+  <section>
+    <h2>내 펫들</h2>
+    <div id="petList"></div>
+    <button id="addPet">+ 기본 펫 추가</button>
+    <span id="addMsg" class="msg"></span>
+  </section>
 
-const $ = (id) => document.getElementById(id);
+  <section>
+    <h2>사진으로 펫 만들기</h2>
+    <p class="hint">
+      <b>기본 모습</b> 사진 1장만 있어도 만들 수 있어요.<br>
+      더 자연스럽게 걷게 하려면 <b>걷기 사진 2장</b>(걸음 ①, ②)을 넣어 주세요.
+      두 장을 번갈아 보여 주고, 가는 방향에 맞춰 사진을 좌우로 뒤집어요.<br>
+      사진을 고르면 바로 미리보기가 나오고, 읽을 수 없는 사진이면 그 자리에서 알려 드려요.
+      사진은 이 컴퓨터에만 저장돼요.
+    </p>
+    <label class="field">이름 <input id="photoName" type="text" maxlength="12" placeholder="예: 뭉치"></label>
+    <div id="photoSlots"></div>
 
-// ── 오류를 화면에 표시 (조용히 실패하지 않도록) ──
-function showError(msg) {
-  const b = $('errBox');
-  b.hidden = false;
-  b.textContent = '오류: ' + msg;
-}
-window.addEventListener('error', (e) => showError(e.message));
-window.addEventListener('unhandledrejection', (e) => showError((e.reason && e.reason.message) || String(e.reason)));
+    <div class="field">
+      <span>사진 속 펫이 바라보는 방향</span>
+      <span class="radios">
+        <label><input type="radio" name="faces" value="right" checked> 오른쪽을 봐요 (왼쪽→오른쪽)</label>
+        <label><input type="radio" name="faces" value="left"> 왼쪽을 봐요 (오른쪽→왼쪽)</label>
+      </span>
+    </div>
+    <label class="field">걷기 사진이 없을 때 움직임
+      <select id="photoMotion"></select>
+    </label>
+    <label class="check"><input id="photoCircle" type="checkbox" checked> 원형 스티커로 자르기 (배경이 이미 지워진 PNG라면 끄세요)</label>
+    <button id="makePhotoPet">펫 만들기</button>
+    <span id="photoMsg" class="msg"></span>
+  </section>
 
-const SLIDERS = [
-  ['petSize', '펫 크기', 80, 260, 10, 'px'],
-  ['moveSpeed', '이동 속도', 1, 12, 1, ''],
-  ['activityRate', '활동량', 20, 200, 10, '%'],
-  ['decaySeconds', '배고픔·갈증 감소 주기', 5, 300, 5, '초'],
-];
-const TOGGLES = [
-  ['footprints', '발자국 남기기'],
-  ['chaseMouse', '마우스 따라가기'],
-  ['interactions', '펫끼리 상호작용'],
-  ['launchAtLogin', '로그인할 때 자동 실행'],
-];
-const SLOTS = [
-  ['idle', '기본 모습 (필수)'],
-  ['walk1', '걷기 ① (추천)'],
-  ['walk2', '걷기 ② (추천)'],
-  ['excited', '신난 모습 (선택)'],
-  ['sleep', '자는 모습 (선택)'],
-];
-const MOTIONS = [['bounce', '통통 튀기'], ['wobble', '좌우로 흔들흔들'], ['float', '둥실둥실'], ['still', '가만히 (위치만 이동)']];
-const FACES = [['right', '오른쪽을 봐요 (왼쪽→오른쪽)'], ['left', '왼쪽을 봐요 (오른쪽→왼쪽)'], ['front', '정면 (좌우반전 안 함)']];
+  <section>
+    <h2>동작 설정</h2>
+    <div id="controls"></div>
+  </section>
 
-function makeSelect(options, value, onChange) {
-  const s = document.createElement('select');
-  for (const [v, label] of options) {
-    const o = document.createElement('option');
-    o.value = v; o.textContent = label;
-    s.appendChild(o);
-  }
-  s.value = value;
-  if (onChange) s.addEventListener('change', () => onChange(s.value));
-  return s;
-}
+  <section>
+    <h2>쪽지 보내기</h2>
+    <div class="row">
+      <select id="noteTarget"></select>
+      <input id="noteText" type="text" maxlength="100" placeholder="종이에 적을 메시지">
+      <button id="sendNote">보내기</button>
+    </div>
+  </section>
 
-// ── 펫 목록 ──
-async function persist(patch) {
-  try {
-    const r = await bridge.setSettings(patch);
-    if (r && r.ok === false) { showError('저장에 실패했어요: ' + r.error); return false; }
-    return true;
-  } catch (err) {
-    showError('저장에 실패했어요: ' + (err && err.message ? err.message : err));
-    return false;
-  }
-}
-
-function savePets(rerender) {
-  if (!rerender) skipRender++;
-  const p = persist({ pets: S.pets });
-  if (rerender) renderPets();
-  return p;
-}
-
-function thumbSrc(pet) {
-  return (pet.anims && pet.anims.idle && pet.anims.idle[0]) || (pet.images && pet.images.idle) || null;
-}
-
-function renderPets() {
-  const list = $('petList');
-  list.innerHTML = '';
-  S.pets.forEach((pet, idx) => {
-    const row = document.createElement('div');
-    row.className = 'pet-row';
-
-    let thumb;
-    const src = pet.kind === 'photo' ? thumbSrc(pet) : null;
-    if (src) { thumb = document.createElement('img'); thumb.src = src; }
-    else { thumb = document.createElement('div'); thumb.textContent = '🐶'; }
-    thumb.className = 'thumb';
-
-    const name = document.createElement('input');
-    name.type = 'text'; name.value = pet.name; name.maxLength = 12;
-    name.addEventListener('input', () => { pet.name = name.value || '펫'; savePets(false); });
-
-    const labeled = (label, el) => {
-      const w = document.createElement('label');
-      w.className = 'sl';
-      w.textContent = label;
-      w.appendChild(el);
-      return w;
-    };
-    const range = (key, min, max, def) => {
-      const r = document.createElement('input');
-      r.type = 'range'; r.min = min; r.max = max; r.value = pet[key] ?? def;
-      r.addEventListener('input', () => { pet[key] = Number(r.value); savePets(false); });
-      return r;
-    };
-
-    const grow = document.createElement('div');
-    grow.className = 'grow';
-
-    const del = document.createElement('button');
-    del.className = 'danger'; del.textContent = '삭제';
-    del.addEventListener('click', () => { S.pets.splice(idx, 1); savePets(true); });
-
-    row.append(thumb, name, labeled('성격 (느긋 ↔ 활발)', range('personality', 0, 100, 50)));
-    if (pet.kind === 'sheet') {
-      row.append(labeled('색 변경', range('hue', 0, 360, 0)));
-    } else {
-      row.append(
-        labeled('움직임 스타일', makeSelect(MOTIONS, pet.motion || 'bounce', (v) => { pet.motion = v; savePets(false); })),
-        labeled('사진 속 방향', makeSelect(FACES, pet.faces || 'right', (v) => { pet.faces = v; savePets(false); })),
-      );
-    }
-    row.append(grow, del);
-    list.appendChild(row);
-  });
-  if (!S.pets.length) list.innerHTML = '<p class="hint">펫이 없어요. 아래 버튼으로 추가해 보세요!</p>';
-  renderNoteTargets();
-}
-
-function renderNoteTargets() {
-  const sel = $('noteTarget');
-  sel.innerHTML = '';
-  for (const p of S.pets) {
-    const o = document.createElement('option');
-    o.value = p.id; o.textContent = p.name;
-    sel.appendChild(o);
-  }
-}
-
-$('addPet').addEventListener('click', () => {
-  if (!S) { showError('설정을 아직 불러오지 못했어요. 잠시 후 다시 눌러 주세요.'); return; }
-  S.pets.push({
-    id: 'p' + Date.now(), name: '친구' + (S.pets.length + 1),
-    kind: 'sheet', personality: 50, hue: Math.floor(Math.random() * 360),
-  });
-  savePets(true);
-  $('addMsg').textContent = `✓ 추가했어요 (현재 ${S.pets.length}마리)`;
-});
-
-// ── 동작 설정 ──
-function buildControls() {
-  const box = $('controls');
-  for (const [key, label, min, max, step, unit] of SLIDERS) {
-    const row = document.createElement('div');
-    row.className = 'ctl';
-    row.innerHTML = `<span class="name">${label}</span><input type="range" min="${min}" max="${max}" step="${step}"><span class="val"></span>`;
-    const input = row.querySelector('input'), val = row.querySelector('.val');
-    input.value = S[key]; val.textContent = S[key] + unit;
-    input.addEventListener('input', () => {
-      val.textContent = input.value + unit;
-      skipRender++;
-      persist({ [key]: Number(input.value) });
-    });
-    box.appendChild(row);
-  }
-  for (const [key, label] of TOGGLES) {
-    const l = document.createElement('label');
-    l.className = 'tg';
-    l.innerHTML = `<input type="checkbox"> ${label}`;
-    const cb = l.querySelector('input');
-    cb.checked = !!S[key];
-    cb.addEventListener('change', () => { skipRender++; persist({ [key]: cb.checked }); });
-    box.appendChild(l);
-  }
-}
-
-// ── 사진으로 펫 만들기 ──
-const slotState = {};   // 슬롯 키 -> { img, name } (고른 즉시 읽어 둔 사진)
-
-function readFile(file) {
-  return new Promise((resolve, reject) => {
-    const fr = new FileReader();
-    fr.onload = () => resolve(fr.result);
-    fr.onerror = () => reject(new Error('파일을 읽지 못했어요'));
-    fr.readAsDataURL(file);
-  });
-}
-
-function loadImage(src) {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => resolve(img);
-    img.onerror = () => reject(new Error('이미지 해석 실패'));
-    img.src = src;
-  });
-}
-
-// 1) 브라우저가 읽을 수 있으면 그대로, 2) 못 읽으면 OS 디코더(예: Mac의 HEIC)로 변환해서 읽음
-async function decodeFile(file) {
-  try {
-    return await loadImage(await readFile(file));
-  } catch { /* 아래 대체 경로 시도 */ }
-  try {
-    const buf = new Uint8Array(await file.arrayBuffer());
-    const png = await bridge.convertImage(buf, file.name);
-    if (png) return await loadImage(await readFile(new Blob([png], { type: 'image/png' })));
-  } catch { /* 아래 오류 */ }
-  throw new Error('읽을 수 없는 사진이에요. JPG나 PNG로 바꿔서 올려 주세요 (아이폰 HEIC 등)');
-}
-
-// 사진 1장을 정사각 캔버스(N×N)로 만든다
-function drawSticker(img, circle, N) {
-  const c = document.createElement('canvas');
-  c.width = c.height = N;
-  const x = c.getContext('2d');
-  const m = Math.max(1, Math.round(N * 0.023));
-  if (circle) {
-    const side = Math.min(img.width, img.height);
-    const sx = (img.width - side) / 2, sy = (img.height - side) / 2;
-    x.save();
-    x.beginPath(); x.arc(N / 2, N / 2, N / 2 - m, 0, Math.PI * 2); x.closePath(); x.clip();
-    x.drawImage(img, sx, sy, side, side, m, m, N - 2 * m, N - 2 * m);
-    x.restore();
-    x.lineWidth = m; x.strokeStyle = '#fff';
-    x.beginPath(); x.arc(N / 2, N / 2, N / 2 - m, 0, Math.PI * 2); x.stroke();
-  } else {
-    const k = Math.min(N / img.width, N / img.height);
-    const w = img.width * k, h = img.height * k;
-    x.drawImage(img, (N - w) / 2, N - h, w, h);
-  }
-  return c;
-}
-
-const toData = (img, circle) => drawSticker(img, circle, 256).toDataURL('image/webp', 0.92);   // webp: 용량 절약 + 투명도 유지
-
-function buildPhotoForm() {
-  const box = $('photoSlots');
-  for (const [key, label] of SLOTS) {
-    const row = document.createElement('div');
-    row.className = 'slot';
-    const name = document.createElement('span'); name.className = 'sname'; name.textContent = label;
-    const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/*';
-    const prev = document.createElement('img'); prev.className = 'prev';
-    const note = document.createElement('span'); note.className = 'snote';
-    inp.addEventListener('change', async () => {
-      delete slotState[key];
-      prev.removeAttribute('src'); note.textContent = '';
-      const f = inp.files[0];
-      if (!f) return;
-      note.textContent = '불러오는 중…';
-      try {
-        const img = await decodeFile(f);
-        slotState[key] = { img, name: f.name };
-        prev.src = drawSticker(img, $('photoCircle').checked, 80).toDataURL('image/png');
-        note.textContent = '';
-      } catch (err) {
-        inp.value = '';
-        note.textContent = '✕ ' + err.message;
-      }
-    });
-    row.append(name, inp, prev, note);
-    box.appendChild(row);
-  }
-  const m = $('photoMotion');
-  for (const [v, label] of MOTIONS) m.add(new Option(label, v));
-}
-
-function resetPhotoForm() {
-  for (const k of Object.keys(slotState)) delete slotState[k];
-  document.querySelectorAll('#photoSlots input[type=file]').forEach((i) => { i.value = ''; });
-  document.querySelectorAll('#photoSlots .prev').forEach((p) => p.removeAttribute('src'));
-  document.querySelectorAll('#photoSlots .snote').forEach((n) => { n.textContent = ''; });
-  $('photoName').value = '';
-}
-
-$('makePhotoPet').addEventListener('click', async () => {
-  const msg = $('photoMsg');
-  if (!S) { msg.textContent = '✕ 설정을 아직 불러오지 못했어요.'; return; }
-  if (!slotState.idle) { msg.textContent = '✕ 기본 모습 사진을 먼저 골라 주세요.'; return; }
-  msg.textContent = '만드는 중…';
-  try {
-    const circle = $('photoCircle').checked;
-    const anims = { idle: [toData(slotState.idle.img, circle)] };
-    const walk = ['walk1', 'walk2'].filter((k) => slotState[k]).map((k) => toData(slotState[k].img, circle));
-    if (walk.length) anims.walk = walk;
-    if (slotState.excited) anims.excited = [toData(slotState.excited.img, circle)];
-    if (slotState.sleep) anims.sleep = [toData(slotState.sleep.img, circle)];
-
-    const faces = (document.querySelector('input[name=faces]:checked') || {}).value || 'right';
-    S.pets.push({
-      id: 'p' + Date.now(),
-      name: $('photoName').value.trim() || '내 펫',
-      kind: 'photo',
-      personality: 50,
-      anims,
-      motion: $('photoMotion').value,
-      faces,
-    });
-    const ok = await savePets(true);
-    if (ok) {
-      msg.textContent = `✓ 펫이 만들어졌어요! (현재 ${S.pets.length}마리)`;
-      resetPhotoForm();
-    } else {
-      msg.textContent = '✕ 만들었지만 저장하지 못했어요. 위의 오류 내용을 확인해 주세요.';
-    }
-  } catch (err) {
-    msg.textContent = '✕ 펫을 만들지 못했어요.';
-    showError(err && err.message ? err.message : String(err));
-  }
-});
-
-// ── 쪽지 ──
-$('sendNote').addEventListener('click', () => {
-  const text = $('noteText').value.trim();
-  if (!text || !$('noteTarget').value) return;
-  bridge.sendNote($('noteTarget').value, text);
-  $('noteText').value = '';
-});
-$('noteText').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('sendNote').click(); });
-
-// ── 시작 ──
-(async () => {
-  S = await bridge.getSettings();
-  try {
-    const info = await bridge.getInfo();
-    $('info').textContent = `MyPet v${info.version} · 설정 저장 위치: ${info.settingsPath}`;
-  } catch { /* 표시만 생략 */ }
-  buildControls();
-  buildPhotoForm();
-  renderPets();
-  bridge.onSettings((s) => {
-    // 내가 보낸 변경의 에코는 무시 (입력 중인 객체 참조가 끊기지 않도록)
-    if (skipRender > 0) { skipRender--; return; }
-    S = s;
-    renderPets();
-  });
-})();
+  <p id="info" class="hint"></p>
+  <script src="settings.js"></script>
+</body>
+</html>
