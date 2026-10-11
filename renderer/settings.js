@@ -8,6 +8,7 @@ const $ = (id) => document.getElementById(id);
 
 function showError(msg) {
   const b = $('errBox');
+  if (!b) return;
   b.hidden = false;
   b.textContent = '오류: ' + msg;
 }
@@ -26,16 +27,17 @@ const TOGGLES = [
   ['interactions', '펫끼리 상호작용'],
   ['launchAtLogin', '로그인할 때 자동 실행'],
 ];
+
+// 💡 걷기 사진을 ①, ②로 세분화한 슬롯 목록
 const SLOTS = [
   ['idle', '기본 모습 (필수)'],
-  ['walk', '걷기'],
-  ['run', '뛰기'],
+  ['walk1', '걷기 ①'],
+  ['walk2', '걷기 ②'],
   ['excited', '신난 모습'],
   ['sleep', '자는 모습'],
 ];
 const MOTIONS = [['bounce', '통통 튀기'], ['wobble', '좌우로 흔들흔들'], ['float', '둥실둥실'], ['still', '가만히']];
-const FACES = [['right', '오른쪽'], ['left', '왼쪽'], ['front', '정면']];
-const MAX_FRAMES = 8;
+const FACES = [['right', '오른쪽'], ['left', '왼쪽']];
 
 function makeSelect(options, value, onChange) {
   const s = document.createElement('select');
@@ -61,6 +63,7 @@ function thumbSrc(pet) {
 
 function renderPets() {
   const list = $('petList');
+  if (!list) return;
   list.innerHTML = '';
   S.pets.forEach((pet, idx) => {
     const row = document.createElement('div');
@@ -115,6 +118,7 @@ function renderPets() {
 
 function renderNoteTargets() {
   const sel = $('noteTarget');
+  if (!sel) return;
   sel.innerHTML = '';
   for (const p of S.pets) {
     const o = document.createElement('option');
@@ -135,6 +139,7 @@ $('addPet').addEventListener('click', () => {
 
 function buildControls() {
   const box = $('controls');
+  if (!box) return;
   for (const [key, label, min, max, step, unit] of SLIDERS) {
     const row = document.createElement('div');
     row.className = 'ctl';
@@ -162,19 +167,24 @@ function buildControls() {
 const slotInputs = {};
 function buildPhotoForm() {
   const box = $('photoSlots');
+  if (!box) return;
+  box.innerHTML = '';
   for (const [key, label] of SLOTS) {
     const l = document.createElement('label');
     l.className = 'field';
     const span = document.createElement('span');
     span.textContent = label;
     const inp = document.createElement('input');
-    inp.type = 'file'; inp.accept = 'image/*'; inp.multiple = true;
+    inp.type = 'file'; inp.accept = 'image/*';
     slotInputs[key] = inp;
     l.append(span, inp);
     box.appendChild(l);
   }
   const m = $('photoMotion');
-  if (m) for (const [v, label] of MOTIONS) m.add(new Option(label, v));
+  if (m) {
+    m.innerHTML = '';
+    for (const [v, label] of MOTIONS) m.add(new Option(label, v));
+  }
 }
 
 function readFile(file) {
@@ -218,25 +228,35 @@ async function processPhoto(file, circle) {
   return c.toDataURL('image/webp', 0.92);
 }
 
-async function collectFrames(files, circle) {
-  const sorted = [...files].sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true })).slice(0, MAX_FRAMES);
-  const out = [];
-  for (const f of sorted) out.push(await processPhoto(f, circle));
-  return out;
-}
-
 $('makePhotoPet').addEventListener('click', async () => {
   const msg = $('photoMsg');
   if (!S) return;
-  if (!slotInputs.idle.files.length) { msg.textContent = '✕ 기본 모습 사진을 선택해 주세요.'; return; }
+  if (!slotInputs.idle.files.length) {
+    msg.textContent = '✕ 기본 모습 사진을 선택해 주세요.';
+    return;
+  }
   msg.textContent = '만드는 중…';
   try {
     const circle = $('photoCircle').checked;
     const anims = {};
+
     for (const [key] of SLOTS) {
-      const files = slotInputs[key].files;
-      if (files.length) anims[key] = await collectFrames(files, circle);
+      const file = slotInputs[key].files[0];
+      if (file) {
+        const processed = await processPhoto(file, circle);
+        // 걷기 슬롯(walk1, walk2)은 펫의 walk 애니메이션 배열로 묶어줌
+        if (key === 'walk1' || key === 'walk2') {
+          if (!anims.walk) anims.walk = [];
+          anims.walk.push(processed);
+        } else {
+          anims[key] = [processed];
+        }
+      }
     }
+
+    // 선택된 바라보는 방향 라디오 버튼 값 가져오기
+    const checkedFace = document.querySelector('input[name="faces"]:checked');
+
     S.pets.push({
       id: 'p' + Date.now(),
       name: $('photoName').value.trim() || '내 펫',
@@ -244,13 +264,19 @@ $('makePhotoPet').addEventListener('click', async () => {
       personality: 50,
       anims,
       motion: $('photoMotion').value,
-      faces: $('photoFaces').value,
+      faces: checkedFace ? checkedFace.value : 'right',
       hunger: 80, thirst: 80, clean: 80, affection: 10, level: 1
     });
+
     savePets(true);
     msg.textContent = '✓ 펫이 만들어졌어요!';
+
+    // 입력폼 초기화
+    for (const [key] of SLOTS) slotInputs[key].value = '';
+    $('photoName').value = '';
   } catch (err) {
-    msg.textContent = '✕ 실패';
+    msg.textContent = '✕ 사진 처리에 실패했어요.';
+    showError(err && err.message ? err.message : String(err));
   }
 });
 
