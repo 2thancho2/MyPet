@@ -3,18 +3,59 @@ const path = require('path');
 const fs = require('fs');
 
 // 이미지 파일을 Base64 Data URL로 변환하는 헬퍼 함수
+// assets 폴더의 5장 사진을 안전하게 읽어 Base64로 반환하는 헬퍼 함수
 function getAssetDataUrl(filename) {
   try {
     const filePath = path.join(__dirname, 'assets', filename);
     if (!fs.existsSync(filePath)) return null;
     const bitmap = fs.readFileSync(filePath);
-    const ext = path.extname(filename).replace('.', '') || 'png';
-    return `data:image/${ext};base64,${bitmap.toString('base64')}`;
+    return `data:image/png;base64,${bitmap.toString('base64')}`;
   } catch (err) {
     console.error(`Asset 로드 실패: ${filename}`, err);
     return null;
   }
 }
+
+// 5장의 사진을 읽어 사진 펫 설정 객체 생성
+function createDefaultPhotoPet() {
+  const idle = getAssetDataUrl('pet_idle.png');
+  const walk1 = getAssetDataUrl('pet_walk1.png');
+  const walk2 = getAssetDataUrl('pet_walk2.png');
+  const excited = getAssetDataUrl('pet_excited.png');
+  const sleep = getAssetDataUrl('pet_sleep.png');
+
+  return {
+    id: 'default_cat',
+    name: '야옹이',
+    kind: 'photo',
+    personality: 70,
+    anims: {
+      idle: idle ? [idle] : [],
+      walk: [walk1, walk2].filter(Boolean),
+      excited: excited ? [excited] : [],
+      sleep: sleep ? [sleep] : [],
+    },
+    motion: 'bounce',
+    faces: 'right',
+    hunger: 80,
+    thirst: 80,
+    clean: 80,
+    affection: 10,
+    level: 1
+  };
+}
+
+const DEFAULTS = {
+  petSize: 150,
+  moveSpeed: 5,
+  activityRate: 100,
+  decaySeconds: 30,
+  footprints: true,
+  chaseMouse: true,
+  interactions: true,
+  launchAtLogin: false,
+  pets: [createDefaultPhotoPet()], // 👈 야옹이 기본 캐릭터 1마리 탑재!
+};
 
 // 5장의 사진을 읽어 사진 펫 설정 객체 생성
 function createDefaultPhotoPet() {
