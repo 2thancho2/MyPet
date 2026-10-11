@@ -3,26 +3,42 @@
 <head>
   <meta charset="utf-8">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'">
-  <title>데스크톱 펫 설정</title>
+  <title>MyPet 설정</title>
   <link rel="stylesheet" href="settings.css">
 </head>
 <body>
-  <h1>🐾 데스크톱 펫 설정</h1>
+  <h1>MyPet 설정</h1>
+  <div id="errBox" hidden></div>
 
   <section>
     <h2>내 펫들</h2>
     <div id="petList"></div>
     <button id="addPet">+ 기본 펫 추가</button>
+    <span id="addMsg" class="msg"></span>
   </section>
 
   <section>
-    <h2>📷 사진으로 펫 만들기</h2>
-    <p class="hint">사진 1장이면 충분해요. 신남/자는 모습 사진을 추가하면 상황에 맞게 바뀝니다.<br>
-      사진은 이 컴퓨터에만 저장되고 외부로 전송되지 않아요.</p>
-    <label class="field">이름 <input id="photoName" type="text" placeholder="예: 뭉치"></label>
-    <label class="field">기본 모습 (필수) <input id="photoIdle" type="file" accept="image/*"></label>
-    <label class="field">신난 모습 (선택) <input id="photoExcited" type="file" accept="image/*"></label>
-    <label class="field">자는 모습 (선택) <input id="photoSleep" type="file" accept="image/*"></label>
+    <h2>사진으로 펫 만들기</h2>
+    <p class="hint">
+      <b>기본 모습</b> 사진 1장만 있어도 만들 수 있어요.<br>
+      더 자연스럽게 걷게 하려면 <b>걷기 사진 2장</b>(걸음 ①, ②)을 넣어 주세요.
+      두 장을 번갈아 보여 주고, 가는 방향에 맞춰 사진을 좌우로 뒤집어요.<br>
+      사진을 고르면 바로 미리보기가 나오고, 읽을 수 없는 사진이면 그 자리에서 알려 드려요.
+      사진은 이 컴퓨터에만 저장돼요.
+    </p>
+    <label class="field">이름 <input id="photoName" type="text" maxlength="12" placeholder="예: 뭉치"></label>
+    <div id="photoSlots"></div>
+
+    <div class="field">
+      <span>사진 속 펫이 바라보는 방향</span>
+      <span class="radios">
+        <label><input type="radio" name="faces" value="right" checked> 오른쪽을 봐요 (왼쪽→오른쪽)</label>
+        <label><input type="radio" name="faces" value="left"> 왼쪽을 봐요 (오른쪽→왼쪽)</label>
+      </span>
+    </div>
+    <label class="field">걷기 사진이 없을 때 움직임
+      <select id="photoMotion"></select>
+    </label>
     <label class="check"><input id="photoCircle" type="checkbox" checked> 원형 스티커로 자르기 (배경이 이미 지워진 PNG라면 끄세요)</label>
     <button id="makePhotoPet">펫 만들기</button>
     <span id="photoMsg" class="msg"></span>
@@ -34,7 +50,7 @@
   </section>
 
   <section>
-    <h2>✍️ 쪽지 보내기</h2>
+    <h2>쪽지 보내기</h2>
     <div class="row">
       <select id="noteTarget"></select>
       <input id="noteText" type="text" maxlength="100" placeholder="종이에 적을 메시지">
@@ -42,6 +58,7 @@
     </div>
   </section>
 
+  <p id="info" class="hint"></p>
   <script src="settings.js"></script>
 </body>
 </html>
