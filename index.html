@@ -128,8 +128,7 @@
     </div>
   </div>
 
-  <script>
-    // 💡 본인의 GitHub 계정명과 리포지토리명으로 수정해 주세요!
+ <script>
     const GITHUB_REPO = "2thancho2/MyPet"; 
 
     async function fetchLatestRelease() {
@@ -141,11 +140,12 @@
         let macUrl = '#';
         let winUrl = '#';
 
+        // 💡 릴리스에 첨부된 파일들을 순회하며 확장자(.dmg, .exe) 기준으로 확실하게 매칭
         data.assets.forEach(asset => {
           const name = asset.name.toLowerCase();
-          if (name.endsWith('.dmg') || name.includes('mac') || name.includes('arm64') || name.includes('x64.dmg')) {
+          if (name.endsWith('.dmg')) {
             macUrl = asset.browser_download_url;
-          } else if (name.endsWith('.exe') || name.includes('win') || name.includes('setup')) {
+          } else if (name.endsWith('.exe')) {
             winUrl = asset.browser_download_url;
           }
         });
