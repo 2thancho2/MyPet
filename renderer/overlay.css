@@ -1,4 +1,4 @@
-hidden] { display: none !important; }
+[hidden] { display: none !important; }
 
 html, body {
   margin: 0;
@@ -6,26 +6,25 @@ html, body {
   height: 100%;
   overflow: hidden;
   background: transparent;
-  pointer-events: none;           /* 기본은 전부 클릭 통과 */
+  pointer-events: none;
   user-select: none;
   font-family: "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans CJK KR", sans-serif;
 }
 
 #footprints, #stage { position: fixed; inset: 0; pointer-events: none; }
 
-/* 펫 */
 .pet {
   position: absolute;
   left: 0; top: 0;
-  pointer-events: auto;           /* 펫 위에서만 클릭 받음 */
+  pointer-events: auto;
   cursor: grab;
   will-change: transform;
   touch-action: none;
 }
 .pet canvas { display: block; transform-origin: 50% 100%; pointer-events: none; }
 
-/* 흰 바탕 + 검은 요소 (이모지도 흑백 처리) */
-.bubble, .status, .item, .paper, #menu .mbtn { filter: grayscale(1); }
+/* 💡 아이콘 색상 원복 (흑백 필터 제거, 배경 흰색/테두리 검은색은 유지) */
+.bubble, .status, .item, .paper { filter: none; }
 
 .bubble {
   position: absolute;
@@ -68,7 +67,6 @@ html, body {
 .status .bar { height: 6px; margin-top: 2px; background: #e4e4e4; border-radius: 3px; overflow: hidden; }
 .status .bar i { display: block; height: 100%; background: #111; }
 
-/* 아이템과 쪽지 */
 .item, .paper { position: absolute; pointer-events: auto; touch-action: none; }
 .item {
   width: 56px; height: 56px;
@@ -95,7 +93,6 @@ html, body {
   cursor: grab;
 }
 
-/* 원형 메뉴 */
 #catcher { position: fixed; inset: 0; pointer-events: auto; background: transparent; }
 #menu { position: fixed; width: 300px; height: 300px; pointer-events: auto; }
 #menu .mbtn {
