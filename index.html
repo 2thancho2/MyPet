@@ -20,11 +20,12 @@
       justify-content: center;
       min-height: 100vh;
       overflow-x: hidden;
+      padding: 40px 20px;
     }
     .container {
       text-align: center;
       max-width: 680px;
-      padding: 40px 20px;
+      width: 100%;
     }
     .pet-preview {
       width: 110px;
@@ -53,7 +54,7 @@
     p.subtitle {
       font-size: 18px;
       color: #999;
-      margin-bottom: 40px;
+      margin-bottom: 36px;
       line-height: 1.5;
     }
     .btn-group {
@@ -61,7 +62,7 @@
       gap: 16px;
       justify-content: center;
       flex-wrap: wrap;
-      margin-bottom: 24px;
+      margin-bottom: 20px;
     }
     .download-btn {
       background-color: #fff;
@@ -96,7 +97,7 @@
     .sub-links {
       font-size: 14px;
       color: #888;
-      margin-bottom: 32px;
+      margin-bottom: 48px;
     }
     .sub-links a {
       color: #aaa;
@@ -108,6 +109,42 @@
     }
     .symbol {
       font-size: 20px;
+    }
+    /* 설치 방법 안내 박스 스타일 */
+    .guide-box {
+      text-align: left;
+      background: #141414;
+      border: 1px solid #222;
+      border-radius: 16px;
+      padding: 28px;
+      margin-bottom: 32px;
+    }
+    .guide-box h3 {
+      font-size: 18px;
+      margin-bottom: 16px;
+      color: #fff;
+      border-bottom: 1px solid #222;
+      padding-bottom: 8px;
+    }
+    .guide-section {
+      margin-bottom: 20px;
+    }
+    .guide-section:last-child {
+      margin-bottom: 0;
+    }
+    .guide-section h4 {
+      font-size: 15px;
+      color: #ddd;
+      margin-bottom: 6px;
+    }
+    .guide-section ol {
+      padding-left: 20px;
+      font-size: 14px;
+      color: #999;
+      line-height: 1.6;
+    }
+    .guide-section li {
+      margin-bottom: 4px;
     }
     .version-info {
       font-size: 13px;
@@ -124,34 +161,60 @@
       <img src="assets/icon.png" alt="MyPet Icon">
     </div>
     <h1>MyPet</h1>
-    <p class="subtitle">바쁜 화면 위에서 나만의 펫과 함께하세요.<br>가볍고 직관적인 데스크톱 오버레이 펫 프로그램</p>
+    <p class="subtitle">바쁜 화면 위에서 나만의 귀여운 반려동물과 함께하세요.<br>가볍고 직관적인 인터페이스로 힐링을 선사합니다.</p>
 
-    <!-- 메인 다운로드 버튼 (사용자 OS에 맞춰 자동 변경됨) -->
+    <!-- 메인 다운로드 버튼 -->
     <div class="btn-group">
       <a id="mainDownloadBtn" href="#" class="download-btn">
-        <span class="symbol"></span> 다운로드
+        <span class="symbol"></span> macOS 다운로드
       </a>
       <a id="winDownloadBtn" href="#" class="download-btn secondary">
         <span class="symbol">⊞</span> Windows 다운로드
       </a>
     </div>
 
-    <!-- 인텔/실리콘 맥 수동 선택 링크 -->
+    <!-- 맥 기종 수동 선택 서브 링크 -->
     <div class="sub-links" id="macSubLinks" style="display: none;">
       맥 기종 변경: 
       <a id="macArmLink" href="#">Apple Silicon (M1/M2/M3)</a> | 
       <a id="macIntelLink" href="#">Intel</a>
     </div>
 
+    <!-- 설치 방법 안내 섹션 -->
+    <div class="guide-box">
+      <h3>💡 설치 방법 안내</h3>
+      
+      <div class="guide-section">
+        <h4>macOS</h4>
+        <ol>
+          <li>다운로드한 <code>.dmg</code> 파일을 열고 MyPet 아이콘을 <strong>Applications(응용 프로그램)</strong> 폴더로 드래그합니다.</li>
+          <li>처음 실행 시 "확인되지 않은 개발자" 경고가 뜨면, <strong>시스템 설정 ➡️ 개인정보 보호 및 보안</strong>에서 <strong>"그래도 열기"</strong>를 누릅니다.</li>
+        </ol>
+      </div>
+
+      <div class="guide-section" style="margin-top: 16px;">
+        <h4>Windows</h4>
+        <ol>
+          <li>다운로드한 <code>.exe</code> 설치 파일을 실행합니다.</li>
+          <li>Windows "PC 보호" 창이 나타나면 <strong>[추가 정보]</strong>를 누른 뒤 <strong>[실행]</strong> 버튼을 클릭합니다.</li>
+        </ol>
+      </div>
+    </div>
+
     <div class="version-info" id="versionText">
-      최신 버전을 불러오는 중...
+      최신 버전 연동 완료
     </div>
   </div>
 
   <script>
     const GITHUB_REPO = "2thancho2/MyPet";
+    const VERSION = "v1.0.8";
 
-    // 자바스크립트로 현재 사용자의 기기가 Apple Silicon인지 확인
+    // 💡 v1.0.8 릴리스 파일 링크 지정
+    const macArmUrl = `https://github.com/${GITHUB_REPO}/releases/download/${VERSION}/MyPet-1.0.8-mac-arm64.dmg`;
+    const macIntelUrl = `https://github.com/${GITHUB_REPO}/releases/download/${VERSION}/MyPet-1.0.8-mac-x64.dmg`;
+    const winUrl = `https://github.com/${GITHUB_REPO}/releases/download/${VERSION}/MyPet-1.0.8-win-x64.exe`;
+
     function isAppleSilicon() {
       const canvas = document.createElement('canvas');
       const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
@@ -162,74 +225,33 @@
           if (renderer && renderer.includes('Apple')) return true;
         }
       }
-      // navigator 플랫폼 fallback (Mac 인지 확인)
       return navigator.platform && navigator.platform.indexOf('Mac') >= 0 && !navigator.userAgent.includes('Intel');
     }
 
-    async function initDownloadPage() {
-      try {
-        const res = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/releases/latest`);
-        if (!res.ok) throw new Error('릴리스 정보를 찾을 수 없습니다.');
-        const data = await res.json();
+    const mainBtn = document.getElementById('mainDownloadBtn');
+    const winBtn = document.getElementById('winDownloadBtn');
+    const macSubLinks = document.getElementById('macSubLinks');
 
-        let arm64Url = '#';
-        let x64MacUrl = '#';
-        let winUrl = '#';
+    const userAgent = navigator.userAgent.toLowerCase();
+    const isWindows = userAgent.includes('win');
 
-        // 릴리스에 올라온 파일들을 분석하여 실리콘맥, 인텔맥, 윈도우 파일 정확히 분류
-        data.assets.forEach(asset => {
-          const name = asset.name.toLowerCase();
-          if (name.endsWith('.dmg')) {
-            if (name.includes('arm64') || name.includes('aarch64') || name.includes('apple')) {
-              arm64Url = asset.browser_download_url;
-            } else if (name.includes('x64') || name.includes('intel') || name.includes('ia32')) {
-              x64MacUrl = asset.browser_download_url;
-            } else {
-              // 구분자가 명확하지 않으면 기본적으로 arm64에 우선 할당
-              if (arm64Url === '#') arm64Url = asset.browser_download_url;
-            }
-          } else if (name.endsWith('.exe')) {
-            winUrl = asset.browser_download_url;
-          }
-        });
+    if (isWindows) {
+      mainBtn.href = winUrl;
+      mainBtn.innerHTML = '<span class="symbol">⊞</span> Windows 다운로드';
+      winBtn.style.display = 'none';
+    } else {
+      const silicon = isAppleSilicon();
+      mainBtn.href = silicon ? macArmUrl : macIntelUrl;
+      mainBtn.innerHTML = silicon ? '<span class="symbol"></span> macOS 다운로드 (Apple Silicon)' : '<span class="symbol"></span> macOS 다운로드 (Intel)';
+      
+      macSubLinks.style.display = 'block';
+      document.getElementById('macArmLink').href = macArmUrl;
+      document.getElementById('macIntelLink').href = macIntelUrl;
 
-        // 만약 파일 하나만 올라와 있다면 양쪽 맥 링크에 동일하게 매칭
-        if (arm64Url !== '#' && x64MacUrl === '#') x64MacUrl = arm64Url;
-        if (x64MacUrl !== '#' && arm64Url === '#') arm64Url = x64MacUrl;
-
-        const mainBtn = document.getElementById('mainDownloadBtn');
-        const winBtn = document.getElementById('winDownloadBtn');
-        const macSubLinks = document.getElementById('macSubLinks');
-
-        // 접속한 OS에 따라 메인 버튼 다이내믹 변경
-        const userAgent = navigator.userAgent.toLowerCase();
-        const isWindows = userAgent.includes('win');
-
-        if (isWindows) {
-          mainBtn.href = winUrl !== '#' ? winUrl : '#';
-          mainBtn.innerHTML = '<span class="symbol">⊞</span> Windows 다운로드';
-          winBtn.style.display = 'none'; // 윈도우 유저에겐 윈도우 버튼을 메인으로
-        } else {
-          // 맥 유저인 경우 실리콘/인텔 자동 판별
-          const silicon = isAppleSilicon();
-          mainBtn.href = silicon ? arm64Url : x64MacUrl;
-          mainBtn.innerHTML = silicon ? '<span class="symbol"></span> macOS 다운로드 (Apple Silicon)' : '<span class="symbol"></span> macOS 다운로드 (Intel)';
-          
-          // 서브 링크 표시해서 사용자가 직접 바꿀 수 있게 제공
-          macSubLinks.style.display = 'block';
-          document.getElementById('macArmLink').href = arm64Url;
-          document.getElementById('macIntelLink').href = x64MacUrl;
-
-          if (winUrl !== '#') winBtn.href = winUrl;
-        }
-
-        document.getElementById('versionText').textContent = `최신 버전: ${data.tag_name} 연동 완료`;
-      } catch (err) {
-        document.getElementById('versionText').textContent = 'GitHub 릴리스 정보를 불러오는 데 실패했습니다.';
-      }
+      winBtn.href = winUrl;
     }
 
-    initDownloadPage();
+    document.getElementById('versionText').textContent = `최신 버전: ${VERSION} 다이렉트 연동 완료`;
   </script>
 </body>
 </html>
