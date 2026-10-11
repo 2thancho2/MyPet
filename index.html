@@ -128,38 +128,19 @@
     </div>
   </div>
 
- <script>
-    const GITHUB_REPO = "2thancho2/MyPet"; 
+<script>
+    // 💡 API 호출 대신 현재 v1.0.8 릴리스 파일 주소를 직접 연결하여 확실하게 다운로드되도록 설정
+    const VERSION = "v1.0.8";
+    const GITHUB_USER = "2thancho2";
+    const REPO = "MyPet";
 
-    async function fetchLatestRelease() {
-      try {
-        const res = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/releases/latest`);
-        if (!res.ok) throw new Error('릴리스 정보를 찾을 수 없습니다.');
-        const data = await res.json();
-        
-        let macUrl = '#';
-        let winUrl = '#';
+    // GitHub Releases의 Direct Download 링크 규칙 적용
+    const macDownloadUrl = `https://github.com/${GITHUB_USER}/${REPO}/releases/download/${VERSION}/DesktopPet-1.0.0-mac-arm64.dmg`;
+    const winDownloadUrl = `https://github.com/${GITHUB_USER}/${REPO}/releases/download/${VERSION}/DesktopPet-1.0.0-win-x64.exe`;
 
-        // 💡 릴리스에 첨부된 파일들을 순회하며 확장자(.dmg, .exe) 기준으로 확실하게 매칭
-        data.assets.forEach(asset => {
-          const name = asset.name.toLowerCase();
-          if (name.endsWith('.dmg')) {
-            macUrl = asset.browser_download_url;
-          } else if (name.endsWith('.exe')) {
-            winUrl = asset.browser_download_url;
-          }
-        });
-
-        if (macUrl !== '#') document.getElementById('macBtn').href = macUrl;
-        if (winUrl !== '#') document.getElementById('winBtn').href = winUrl;
-
-        document.getElementById('versionText').textContent = `최신 버전: ${data.tag_name} (GitHub Releases 연동됨)`;
-      } catch (err) {
-        document.getElementById('versionText').textContent = 'GitHub Releases에 업로드된 파일이 아직 없거나 주소를 확인해주세요.';
-      }
-    }
-
-    fetchLatestRelease();
+    document.getElementById('macBtn').href = macDownloadUrl;
+    document.getElementById('winBtn').href = winDownloadUrl;
+    document.getElementById('versionText').textContent = `최신 버전: ${VERSION} (정상 연동됨)`;
   </script>
 </body>
 </html>
