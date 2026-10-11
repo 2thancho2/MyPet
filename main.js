@@ -2,6 +2,51 @@ const { app, BrowserWindow, Tray, Menu, ipcMain, screen, nativeImage } = require
 const path = require('path');
 const fs = require('fs');
 
+// 이미지 파일을 Base64 Data URL로 변환하는 헬퍼 함수
+function getAssetDataUrl(filename) {
+  try {
+    const filePath = path.join(__dirname, 'assets', filename);
+    if (!fs.existsSync(filePath)) return null;
+    const bitmap = fs.readFileSync(filePath);
+    const ext = path.extname(filename).replace('.', '') || 'png';
+    return `data:image/${ext};base64,${bitmap.toString('base64')}`;
+  } catch (err) {
+    console.error(`Asset 로드 실패: ${filename}`, err);
+    return null;
+  }
+}
+
+// 5장의 사진을 읽어 사진 펫 설정 객체 생성
+function createDefaultPhotoPet() {
+  const idle = getAssetDataUrl('pet_idle.png');
+  const walk1 = getAssetDataUrl('pet_walk1.png');
+  const walk2 = getAssetDataUrl('pet_walk2.png');
+  const excited = getAssetDataUrl('pet_excited.png');
+  const sleep = getAssetDataUrl('pet_sleep.png');
+
+  // 사진이 없으면 기본 스몰 세팅 적용
+  const anims = {};
+  if (idle) anims.idle = [idle];
+  if (walk1 || walk2) anims.walk = [walk1, walk2].filter(Boolean);
+  if (excited) anims.excited = [excited];
+  if (sleep) anims.sleep = [sleep];
+
+  return {
+    id: 'default_cat',
+    name: '야옹이',
+    kind: 'photo',
+    personality: 70,
+    anims: anims,
+    motion: 'bounce',
+    faces: 'right',
+    hunger: 80,
+    thirst: 80,
+    clean: 80,
+    affection: 10,
+    level: 1
+  };
+}
+
 const DEFAULTS = {
   petSize: 150,
   moveSpeed: 5,
@@ -11,7 +56,7 @@ const DEFAULTS = {
   chaseMouse: true,
   interactions: true,
   launchAtLogin: false,
-  pets: [ ],
+  pets: [createDefaultPhotoPet()], // 👈 assets의 사진 5장을 이용한 기본 캐릭터 1마리로 시작!
 };
 const clone = (o) => JSON.parse(JSON.stringify(o));
 let settings = clone(DEFAULTS);
