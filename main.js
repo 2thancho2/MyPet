@@ -14,7 +14,9 @@ const DEFAULTS = {
   pets: [{ id: 'default', name: '콩이', kind: 'sheet', personality: 60, hue: 0 }],
 };
 
-let settings = { ...DEFAULTS };
+const clone = (o) => JSON.parse(JSON.stringify(o));
+let settings = clone(DEFAULTS);
+let lastBackup = 0;
 let settingsPath;
 let overlay = null;
 let settingsWin = null;
@@ -25,18 +27,33 @@ app.on('second-instance', () => openSettings());
 
 // ───────────── 설정 저장/불러오기 ─────────────
 function loadSettings() {
-  try {
-    settings = { ...DEFAULTS, ...JSON.parse(fs.readFileSync(settingsPath, 'utf8')) };
-  } catch {
-    settings = { ...DEFAULTS };
+  // 본 파일이 깨졌으면 백업 파일에서 복구
+  for (const file of [settingsPath, settingsPath + '.bak']) {
+    try {
+      const saved = JSON.parse(fs.readFileSync(file, 'utf8'));
+      settings = { ...clone(DEFAULTS), ...saved };
+      if (!Array.isArray(settings.pets)) settings.pets = clone(DEFAULTS).pets;
+      return;
+    } catch { /* 다음 후보 */ }
   }
+  settings = clone(DEFAULTS);
 }
 
 function saveSettings() {
+  const tmp = settingsPath + '.tmp';
   try {
-    fs.writeFileSync(settingsPath, JSON.stringify(settings));
+    fs.mkdirSync(path.dirname(settingsPath), { recursive: true });
+    // 1분에 한 번 백업 (저장 도중 문제가 생겨도 되돌릴 수 있게)
+    if (fs.existsSync(settingsPath) && Date.now() - lastBackup > 60000) {
+      fs.copyFileSync(settingsPath, settingsPath + '.bak');
+      lastBackup = Date.now();
+    }
+    fs.writeFileSync(tmp, JSON.stringify(settings));   // 임시 파일에 먼저 쓰고
+    fs.renameSync(tmp, settingsPath);                  // 한 번에 교체 (반쯤 쓰인 파일이 생기지 않음)
+    return { ok: true };
   } catch (err) {
     console.error('설정 저장 실패', err);
+    return { ok: false, error: err.message };
   }
 }
 
@@ -133,10 +150,27 @@ ipcMain.handle('settings:get', () => settings);
 
 ipcMain.handle('settings:set', (_e, patch) => {
   settings = { ...settings, ...patch };
-  saveSettings();
+  const result = saveSettings();
   broadcast();                 // 먼저 화면에 반영
   applySystemSettings();       // 실패해도 위 동작에 영향 없음
-  return settings;
+  return result;               // { ok, error }
+});
+
+ipcMain.handle('info:get', () => ({ version: app.getVersion(), settingsPath }));
+
+// 브라우저가 못 읽는 사진(예: Mac의 HEIC)을 OS 디코더로 PNG로 변환
+ipcMain.handle('image:convert', (_e, buf, name) => {
+  const tmp = path.join(app.getPath('temp'), 'mypet-' + Date.now() + path.extname(String(name || '')));
+  try {
+    fs.writeFileSync(tmp, Buffer.from(buf));
+    const img = nativeImage.createFromPath(tmp);
+    return img.isEmpty() ? null : img.toPNG();
+  } catch (err) {
+    console.error('이미지 변환 실패', err);
+    return null;
+  } finally {
+    try { fs.unlinkSync(tmp); } catch { /* 무시 */ }
+  }
 });
 
 ipcMain.on('ignore-mouse', (_e, ignore) => {
