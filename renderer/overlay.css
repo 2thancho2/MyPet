@@ -106,7 +106,19 @@ html, body {
   cursor: pointer;
   transition: transform .1s, background .1s;
 }
-#menu .mbtn:hover { transform: scale(1.25); background: #e4e4e4; border-width: 3px; }
+#menu .mbtn {
+  position: absolute;
+  width: 46px; height: 46px;
+  padding: 0;
+  font-size: 22px;
+  background: #fff;
+  border: 2px solid #111;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: transform .1s, background .1s;
+  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+  filter: none !important;
+}
 #menu .label {
   position: absolute;
   left: 85px; top: 132px;
