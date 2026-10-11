@@ -326,12 +326,34 @@ class Pet {
 
   useItem(kind) {
     this.affection += 5;
-    if (this.affection >= this.level * 25) { this.level++; this.say(`레벨 업! Lv.${this.level}이 되었어요! 🎉`, 4); }
+    if (this.affection >= this.level * 25) { 
+      this.level++; 
+      this.say(`레벨 업! Lv.${this.level}이 되었어요! 🎉`, 4); 
+    }
     if (kind === 'food') { this.hunger = Math.min(100, this.hunger + 35); this.setAnim('lick'); this.say('냠냠! 맛있는 간식이다 🥣'); }
     else if (kind === 'water') { this.thirst = Math.min(100, this.thirst + 40); this.setAnim('cute'); this.say('시원한 물 꿀꺽! 🥛'); }
     else { this.clean = Math.min(100, this.clean + 40); this.setAnim('excited'); this.say('보들보들 기분 좋은 빗질이야! ✨'); }
+    
     this.mode = 'idle';
     this.actionUntil = tick + 40;
+
+    // 💡 변경된 수치를 cfg에 반영하고 메인 설정에 즉시 동기화 저장
+    this.cfg.hunger = this.hunger;
+    this.cfg.thirst = this.thirst;
+    this.cfg.clean = this.clean;
+    this.cfg.affection = this.affection;
+    this.cfg.level = this.level;
+    
+    // 현재 모든 펫들의 최신 상태를 모아서 메인으로 저장 요청
+    const allPets = [...pets.values()].map(p => {
+      p.cfg.hunger = p.hunger;
+      p.cfg.thirst = p.thirst;
+      p.cfg.clean = p.clean;
+      p.cfg.affection = p.affection;
+      p.cfg.level = p.level;
+      return p.cfg;
+    });
+    bridge.setSettings({ pets: allPets });
   }
 
   decideIdle() {
