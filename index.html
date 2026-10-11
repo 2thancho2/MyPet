@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MyPet - 데스크톱 귀여운 나만의 펫</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      background-color: #0b0b0b;
+      color: #f5f5f7;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    .container {
+      text-align: center;
+      max-width: 680px;
+      padding: 40px 20px;
+    }
+    .pet-preview {
+      width: 110px;
+      height: 110px;
+      margin: 0 auto 24px;
+      background: #1a1a1a;
+      border: 2px solid #333;
+      border-radius: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+    .pet-preview img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    h1 {
+      font-size: 42px;
+      font-weight: 800;
+      letter-spacing: -1px;
+      margin-bottom: 12px;
+    }
+    p.subtitle {
+      font-size: 18px;
+      color: #999;
+      margin-bottom: 40px;
+      line-height: 1.5;
+    }
+    .btn-group {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 48px;
+    }
+    .download-btn {
+      background-color: #fff;
+      color: #0b0b0b;
+      border: none;
+      padding: 16px 32px;
+      font-size: 16px;
+      font-weight: 700;
+      border-radius: 14px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      transition: transform 0.2s, background-color 0.2s, box-shadow 0.2s;
+      box-shadow: 0 4px 14px rgba(255,255,255,0.1);
+    }
+    .download-btn:hover {
+      transform: translateY(-2px);
+      background-color: #e4e4e4;
+      box-shadow: 0 6px 20px rgba(255,255,255,0.2);
+    }
+    .download-btn.secondary {
+      background-color: #1a1a1a;
+      color: #fff;
+      border: 2px solid #333;
+    }
+    .download-btn.secondary:hover {
+      background-color: #2a2a2a;
+      border-color: #555;
+    }
+    .symbol {
+      font-size: 20px;
+    }
+    .version-info {
+      font-size: 13px;
+      color: #666;
+      border-top: 1px solid #1a1a1a;
+      padding-top: 24px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <!-- 💡 assets 폴더에 있는 icon.png를 가져와서 미리보기로 표시 -->
+    <div class="pet-preview">
+      <img src="assets/icon.png" alt="MyPet Icon">
+    </div>
+    <h1>MyPet</h1>
+    <p class="subtitle">바쁜 화면 위에서 나만의 귀여운 친구와 함께하세요.<br>가볍고 직관적인 데스크톱 오버레이 펫 프로그램</p>
+
+    <div class="btn-group">
+      <a id="macBtn" href="#" class="download-btn">
+        <span class="symbol"></span> macOS 다운로드
+      </a>
+      <a id="winBtn" href="#" class="download-btn secondary">
+        <span class="symbol">⊞</span> Windows 다운로드
+      </a>
+    </div>
+
+    <div class="version-info" id="versionText">
+      최신 버전을 불러오는 중...
+    </div>
+  </div>
+
+  <script>
+    // 💡 본인의 GitHub 계정명과 리포지토리명으로 수정해 주세요!
+    const GITHUB_REPO = "YOUR_GITHUB_USERNAME/MyPet"; 
+
+    async function fetchLatestRelease() {
+      try {
+        const res = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/releases/latest`);
+        if (!res.ok) throw new Error('릴리스 정보를 찾을 수 없습니다.');
+        const data = await res.json();
+        
+        let macUrl = '#';
+        let winUrl = '#';
+
+        data.assets.forEach(asset => {
+          const name = asset.name.toLowerCase();
+          if (name.endsWith('.dmg') || name.includes('mac') || name.includes('arm64') || name.includes('x64.dmg')) {
+            macUrl = asset.browser_download_url;
+          } else if (name.endsWith('.exe') || name.includes('win') || name.includes('setup')) {
+            winUrl = asset.browser_download_url;
+          }
+        });
+
+        if (macUrl !== '#') document.getElementById('macBtn').href = macUrl;
+        if (winUrl !== '#') document.getElementById('winBtn').href = winUrl;
+
+        document.getElementById('versionText').textContent = `최신 버전: ${data.tag_name} (GitHub Releases 연동됨)`;
+      } catch (err) {
+        document.getElementById('versionText').textContent = 'GitHub Releases에 업로드된 파일이 아직 없거나 주소를 확인해주세요.';
+      }
+    }
+
+    fetchLatestRelease();
+  </script>
+</body>
+</html>
