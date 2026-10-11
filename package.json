@@ -1,8 +1,8 @@
 {
-  "name": "desktop-pet",
-  "version": "1.0.0",
-  "description": "데스크톱 펫",
-  "author": "Desktop Pet",
+  "name": "mypet",
+  "version": "1.0.2",
+  "description": "MyPet - 데스크톱 펫",
+  "author": "MyPet",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
@@ -13,21 +13,44 @@
     "electron-builder": "26.15.3"
   },
   "build": {
-    "appId": "com.example.desktoppet",
-    "productName": "Desktop Pet",
-    "artifactName": "DesktopPet-${version}-${os}-${arch}.${ext}",
-    "files": ["main.js", "preload.js", "renderer/**", "assets/**"],
+    "appId": "com.example.mypet",
+    "productName": "MyPet",
+    "artifactName": "MyPet-${version}-${os}-${arch}.${ext}",
+    "files": [
+      "main.js",
+      "preload.js",
+      "renderer/**",
+      "assets/**"
+    ],
     "mac": {
-      "target": [{ "target": "dmg", "arch": ["arm64", "x64"] }],
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
+      ],
       "category": "public.app-category.entertainment",
-      "icon": "assets/icon.png",
+      "icon": "assets/icon-mac.png",
       "identity": "-",
       "hardenedRuntime": false
     },
     "win": {
-      "target": [{ "target": "nsis", "arch": ["x64"] }],
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
       "icon": "assets/icon.png"
     },
-    "nsis": { "oneClick": true, "perMachine": false }
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false
+    }
   }
 }
