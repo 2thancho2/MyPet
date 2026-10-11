@@ -61,7 +61,7 @@
       gap: 16px;
       justify-content: center;
       flex-wrap: wrap;
-      margin-bottom: 48px;
+      margin-bottom: 24px;
     }
     .download-btn {
       background-color: #fff;
@@ -93,6 +93,19 @@
       background-color: #2a2a2a;
       border-color: #555;
     }
+    .sub-links {
+      font-size: 14px;
+      color: #888;
+      margin-bottom: 32px;
+    }
+    .sub-links a {
+      color: #aaa;
+      text-decoration: underline;
+      margin: 0 6px;
+    }
+    .sub-links a:hover {
+      color: #fff;
+    }
     .symbol {
       font-size: 20px;
     }
@@ -107,20 +120,27 @@
 <body>
 
   <div class="container">
-    <!-- 💡 assets 폴더에 있는 icon.png를 가져와서 미리보기로 표시 -->
     <div class="pet-preview">
       <img src="assets/icon.png" alt="MyPet Icon">
     </div>
     <h1>MyPet</h1>
     <p class="subtitle">바쁜 화면 위에서 나만의 펫과 함께하세요.<br>가볍고 직관적인 데스크톱 오버레이 펫 프로그램</p>
 
+    <!-- 메인 다운로드 버튼 (사용자 OS에 맞춰 자동 변경됨) -->
     <div class="btn-group">
-      <a id="macBtn" href="#" class="download-btn">
-        <span class="symbol"></span> macOS 다운로드
+      <a id="mainDownloadBtn" href="#" class="download-btn">
+        <span class="symbol"></span> 다운로드
       </a>
-      <a id="winBtn" href="#" class="download-btn secondary">
+      <a id="winDownloadBtn" href="#" class="download-btn secondary">
         <span class="symbol">⊞</span> Windows 다운로드
       </a>
+    </div>
+
+    <!-- 인텔/실리콘 맥 수동 선택 링크 -->
+    <div class="sub-links" id="macSubLinks" style="display: none;">
+      맥 기종 변경: 
+      <a id="macArmLink" href="#">Apple Silicon (M1/M2/M3)</a> | 
+      <a id="macIntelLink" href="#">Intel</a>
     </div>
 
     <div class="version-info" id="versionText">
@@ -128,19 +148,88 @@
     </div>
   </div>
 
-<script>
-    // 💡 API 호출 대신 현재 v1.0.8 릴리스 파일 주소를 직접 연결하여 확실하게 다운로드되도록 설정
-    const VERSION = "v1.0.8";
-    const GITHUB_USER = "2thancho2";
-    const REPO = "MyPet";
+  <script>
+    const GITHUB_REPO = "2thancho2/MyPet";
 
-    // GitHub Releases의 Direct Download 링크 규칙 적용
-    const macDownloadUrl = `https://github.com/${GITHUB_USER}/${REPO}/releases/download/${VERSION}/DesktopPet-1.0.0-mac-arm64.dmg`;
-    const winDownloadUrl = `https://github.com/${GITHUB_USER}/${REPO}/releases/download/${VERSION}/DesktopPet-1.0.0-win-x64.exe`;
+    // 자바스크립트로 현재 사용자의 기기가 Apple Silicon인지 확인
+    function isAppleSilicon() {
+      const canvas = document.createElement('canvas');
+      const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+      if (gl) {
+        const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+        if (debugInfo) {
+          const renderer = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
+          if (renderer && renderer.includes('Apple')) return true;
+        }
+      }
+      // navigator 플랫폼 fallback (Mac 인지 확인)
+      return navigator.platform && navigator.platform.indexOf('Mac') >= 0 && !navigator.userAgent.includes('Intel');
+    }
 
-    document.getElementById('macBtn').href = macDownloadUrl;
-    document.getElementById('winBtn').href = winDownloadUrl;
-    document.getElementById('versionText').textContent = `최신 버전: ${VERSION} (정상 연동됨)`;
+    async function initDownloadPage() {
+      try {
+        const res = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/releases/latest`);
+        if (!res.ok) throw new Error('릴리스 정보를 찾을 수 없습니다.');
+        const data = await res.json();
+
+        let arm64Url = '#';
+        let x64MacUrl = '#';
+        let winUrl = '#';
+
+        // 릴리스에 올라온 파일들을 분석하여 실리콘맥, 인텔맥, 윈도우 파일 정확히 분류
+        data.assets.forEach(asset => {
+          const name = asset.name.toLowerCase();
+          if (name.endsWith('.dmg')) {
+            if (name.includes('arm64') || name.includes('aarch64') || name.includes('apple')) {
+              arm64Url = asset.browser_download_url;
+            } else if (name.includes('x64') || name.includes('intel') || name.includes('ia32')) {
+              x64MacUrl = asset.browser_download_url;
+            } else {
+              // 구분자가 명확하지 않으면 기본적으로 arm64에 우선 할당
+              if (arm64Url === '#') arm64Url = asset.browser_download_url;
+            }
+          } else if (name.endsWith('.exe')) {
+            winUrl = asset.browser_download_url;
+          }
+        });
+
+        // 만약 파일 하나만 올라와 있다면 양쪽 맥 링크에 동일하게 매칭
+        if (arm64Url !== '#' && x64MacUrl === '#') x64MacUrl = arm64Url;
+        if (x64MacUrl !== '#' && arm64Url === '#') arm64Url = x64MacUrl;
+
+        const mainBtn = document.getElementById('mainDownloadBtn');
+        const winBtn = document.getElementById('winDownloadBtn');
+        const macSubLinks = document.getElementById('macSubLinks');
+
+        // 접속한 OS에 따라 메인 버튼 다이내믹 변경
+        const userAgent = navigator.userAgent.toLowerCase();
+        const isWindows = userAgent.includes('win');
+
+        if (isWindows) {
+          mainBtn.href = winUrl !== '#' ? winUrl : '#';
+          mainBtn.innerHTML = '<span class="symbol">⊞</span> Windows 다운로드';
+          winBtn.style.display = 'none'; // 윈도우 유저에겐 윈도우 버튼을 메인으로
+        } else {
+          // 맥 유저인 경우 실리콘/인텔 자동 판별
+          const silicon = isAppleSilicon();
+          mainBtn.href = silicon ? arm64Url : x64MacUrl;
+          mainBtn.innerHTML = silicon ? '<span class="symbol"></span> macOS 다운로드 (Apple Silicon)' : '<span class="symbol"></span> macOS 다운로드 (Intel)';
+          
+          // 서브 링크 표시해서 사용자가 직접 바꿀 수 있게 제공
+          macSubLinks.style.display = 'block';
+          document.getElementById('macArmLink').href = arm64Url;
+          document.getElementById('macIntelLink').href = x64MacUrl;
+
+          if (winUrl !== '#') winBtn.href = winUrl;
+        }
+
+        document.getElementById('versionText').textContent = `최신 버전: ${data.tag_name} 연동 완료`;
+      } catch (err) {
+        document.getElementById('versionText').textContent = 'GitHub 릴리스 정보를 불러오는 데 실패했습니다.';
+      }
+    }
+
+    initDownloadPage();
   </script>
 </body>
 </html>
