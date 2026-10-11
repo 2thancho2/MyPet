@@ -1,6 +1,6 @@
 'use strict';
 
-const api = window.api;
+const bridge = window.api;   // 'api'라는 이름으로 다시 선언하면 충돌해서 실행이 멈춤
 const TICK_MS = 40;
 
 const stage = document.getElementById('stage');
@@ -47,6 +47,14 @@ const SHEET_ANIMS = {
 };
 const ANIM_SPEED = { idle: 15, walk: 5, run: 3, jump: 5, excited: 6, cute: 10, sleep: 18, lick: 7, surprise: 7 };
 const FLIP_ANIMS = new Set(['walk', 'run', 'jump']);
+
+// 사진 펫: 동작별 사진 묶음과, 해당 사진이 없을 때 대신 쓸 순서
+const PHOTO_STATES = ['idle', 'walk', 'run', 'excited', 'sleep'];
+const PHOTO_FALLBACK = {
+  idle: ['idle'], walk: ['walk', 'idle'], run: ['run', 'walk', 'idle'],
+  excited: ['excited', 'idle'], jump: ['excited', 'idle'], surprise: ['excited', 'idle'],
+  cute: ['excited', 'idle'], lick: ['excited', 'idle'], sleep: ['sleep', 'idle'],
+};
 
 const sheetImg = new Image();
 let sheetState = 'loading';
@@ -103,12 +111,30 @@ class Pet {
   updateCfg(cfg) {
     this.cfg = cfg;
     this.photos = {};
-    if (cfg.kind === 'photo' && cfg.images) {
-      for (const key of ['idle', 'excited', 'sleep']) {
-        if (cfg.images[key]) { const im = new Image(); im.src = cfg.images[key]; this.photos[key] = im; }
+    if (cfg.kind === 'photo') {
+      // anims: { idle:[사진...], walk:[...], ... } (구버전 images 형식도 지원)
+      const src = cfg.anims || {};
+      for (const key of PHOTO_STATES) {
+        let list = src[key];
+        if (!list && cfg.images && cfg.images[key]) list = [cfg.images[key]];
+        this.photos[key] = (list || []).map((url) => { const im = new Image(); im.src = url; return im; });
       }
     }
     this.applySize();
+  }
+
+  // 현재 동작에 쓸 사진 목록 (없으면 비슷한 동작의 사진으로 대체)
+  photoList() {
+    for (const key of (PHOTO_FALLBACK[this.anim] || ['idle'])) {
+      if (this.photos[key] && this.photos[key].length) return this.photos[key];
+    }
+    return [];
+  }
+
+  // 현재 동작 전용으로 올린 사진 수 (2장 이상이면 프레임 애니메이션)
+  ownFrameCount() {
+    const key = (PHOTO_FALLBACK[this.anim] || ['idle'])[0];
+    return (this.photos[key] || []).length;
   }
 
   applySize() {
@@ -135,10 +161,14 @@ class Pet {
     this.animClock++;
     if (this.animClock >= (ANIM_SPEED[this.anim] || 8)) {
       this.animClock = 0;
-      const n = SHEET_ANIMS[this.anim].length;
-      this.animIndex = this.anim === 'idle'
-        ? (Math.random() < .72 ? 0 : rnd(1, n - 1))
-        : (this.animIndex + 1) % n;
+      if (this.cfg.kind === 'photo') {
+        this.animIndex = (this.animIndex + 1) % Math.max(1, this.photoList().length);
+      } else {
+        const n = SHEET_ANIMS[this.anim].length;
+        this.animIndex = this.anim === 'idle'
+          ? (Math.random() < .72 ? 0 : rnd(1, n - 1))
+          : (this.animIndex + 1) % n;
+      }
     }
   }
 
@@ -147,9 +177,8 @@ class Pet {
     ctx.clearRect(0, 0, s, s);
     let img, sx, sy, sw, sh;
     if (this.cfg.kind === 'photo') {
-      const key = this.anim === 'sleep' ? 'sleep'
-        : (['excited', 'cute', 'jump', 'lick', 'surprise'].includes(this.anim) ? 'excited' : 'idle');
-      img = this.photos[key] || this.photos.idle;
+      const list = this.photoList();
+      img = list[this.animIndex % Math.max(1, list.length)];
       if (!img || !img.complete || !img.naturalWidth) return;
       sx = 0; sy = 0; sw = img.naturalWidth; sh = img.naturalHeight;
     } else if (sheetState === 'ok') {
@@ -170,22 +199,36 @@ class Pet {
     let bob = 0, rot = 0, sx = 1, sy = 1;
     const t = tick, a = this.anim;
     if (this.cfg.kind === 'photo') {
-      // 사진 펫: 코드로 만드는 움직임
-      if (a === 'walk') { bob = -Math.abs(Math.sin(t / 3)) * 8; rot = Math.sin(t / 3) * 4; }
-      else if (a === 'run') { bob = -Math.abs(Math.sin(t / 2)) * 14; rot = Math.sin(t / 2) * 8; }
-      else if (a === 'excited' || a === 'jump') { bob = -Math.abs(Math.sin(t / 3)) * 20; rot = Math.sin(t / 3) * 10; }
-      else if (a === 'cute') { rot = Math.sin(t / 5) * 10; }
-      else if (a === 'lick') { sx = 1 + Math.sin(t / 2) * 0.05; }
-      else if (a === 'sleep') { rot = 12; sy = 0.95 + Math.sin(t / 20) * 0.03; }
-      else { sy = 1 + Math.sin(t / 10) * 0.02; }
+      // 이 동작 전용 사진이 2장 이상이면 프레임이 움직임을 대신하고, 아니면 선택한 스타일로 움직임
+      if (this.ownFrameCount() < 2) {
+        const motion = this.cfg.motion || 'bounce';
+        const f = a === 'run' ? 2 : 3;
+        if (a === 'sleep') { rot = 12; sy = 0.95 + Math.sin(t / 20) * 0.03; }
+        else if (a === 'walk' || a === 'run') {
+          if (motion === 'bounce') { bob = -Math.abs(Math.sin(t / f)) * (a === 'run' ? 14 : 8); rot = Math.sin(t / f) * (a === 'run' ? 8 : 4); }
+          else if (motion === 'wobble') { rot = Math.sin(t / f) * (a === 'run' ? 16 : 10); }
+          else if (motion === 'float') { bob = Math.sin(t / 8) * 8 - 6; }
+        }
+        else if (a === 'excited' || a === 'jump') { bob = -Math.abs(Math.sin(t / 3)) * 20; rot = Math.sin(t / 3) * 10; }
+        else if (a === 'cute') { rot = Math.sin(t / 5) * 10; }
+        else if (a === 'lick') { sx = 1 + Math.sin(t / 2) * 0.05; }
+        else if (a === 'surprise') { bob = -Math.abs(Math.sin(t / 3)) * 10; }
+        else { sy = 1 + Math.sin(t / 10) * 0.02; }
+      }
     } else {
       if (a === 'walk' || a === 'run') bob = [0, -3, 1, -2][this.animIndex % 4];
       else if (a === 'jump') bob = this.animIndex % 2 === 0 ? -5 : 0;
       else if (a === 'sleep') bob = 2;
     }
-    const flip = this.cfg.kind === 'photo'
-      ? (this.facing < 0 ? -1 : 1)
-      : (FLIP_ANIMS.has(a) && this.facing > 0 ? -1 : 1);
+
+    let flip = 1;
+    if (this.cfg.kind === 'photo') {
+      const faces = this.cfg.faces || 'right';           // 사진 속 펫이 바라보는 방향
+      if (faces === 'right') flip = this.facing < 0 ? -1 : 1;
+      else if (faces === 'left') flip = this.facing > 0 ? -1 : 1;
+    } else {
+      flip = (FLIP_ANIMS.has(a) && this.facing > 0) ? -1 : 1;
+    }
     this.canvas.style.transform = `translateY(${bob}px) rotate(${rot}deg) scale(${sx * flip}, ${sy})`;
   }
 
@@ -196,12 +239,12 @@ class Pet {
   }
 
   renderStatusHtml() {
-    const bar = (icon, label, v, color) =>
-      `<div class="row"><span>${icon} ${label} ${v}</span><div class="bar"><i style="width:${v}%;background:${color}"></i></div></div>`;
+    const bar = (icon, label, v) =>
+      `<div class="row"><span>${icon} ${label} ${v}</span><div class="bar"><i style="width:${v}%"></i></div></div>`;
     return `<div class="title">${esc(this.name)} · Lv.${this.level} (친밀 ${this.affection})</div>`
-      + bar('🥣', '배부름', this.hunger, '#ff7043')
-      + bar('🥛', '수분', this.thirst, '#42a5f5')
-      + bar('✨', '청결', this.clean, '#66bb6a');
+      + bar('🥣', '배부름', this.hunger)
+      + bar('🥛', '수분', this.thirst)
+      + bar('✨', '청결', this.clean);
   }
 
   render() {
@@ -482,15 +525,15 @@ function menuItems(pet) {
     ['🥣', '먹이 주기', () => spawnItem('food', pet)],
     ['🥛', '물 주기', () => spawnItem('water', pet)],
     ['🧹', '털 빗기', () => spawnItem('comb', pet)],
-    [S.footprints ? '🐾' : '💤', S.footprints ? '발자국 ON' : '발자국 OFF', () => api.setSettings({ footprints: !S.footprints })],
-    ['⚙️', '설정', () => api.openSettings()],
-    ['👋', '프로그램 종료', () => api.quit()],
+    [S.footprints ? '🐾' : '💤', S.footprints ? '발자국 ON' : '발자국 OFF', () => bridge.setSettings({ footprints: !S.footprints })],
+    ['⚙️', '설정', () => bridge.openSettings()],
+    ['👋', '프로그램 종료', () => bridge.quit()],
   ];
 }
 
 let ignoring = true;
 function setIgnore(v) {
-  if (ignoring !== v) { ignoring = v; api.ignoreMouse(v); }
+  if (ignoring !== v) { ignoring = v; bridge.ignoreMouse(v); }
 }
 
 function openMenu(pet, x, y) {
@@ -562,7 +605,7 @@ function drawFootprints() {
   fpCtx.clearRect(0, 0, fpCanvas.width, fpCanvas.height);
   footprints = footprints.filter((f) => (f.a -= 3) > 0);
   for (const f of footprints) {
-    fpCtx.fillStyle = `rgba(161,130,103,${f.a / 255})`;
+    fpCtx.fillStyle = `rgba(30,30,30,${f.a / 255})`;
     fpCtx.beginPath();
     fpCtx.arc(f.x, f.y, 3, 0, Math.PI * 2);
     fpCtx.fill();
@@ -593,9 +636,9 @@ function tickAll() {
 
 (async () => {
   resizeFootprintCanvas();
-  applySettings(await api.getSettings());
-  api.onSettings(applySettings);
-  api.onNote((id, text) => {
+  applySettings(await bridge.getSettings());
+  bridge.onSettings(applySettings);
+  bridge.onNote((id, text) => {
     const p = pets.get(id) || pets.values().next().value;
     if (p) p.throwPaper(text);
   });
