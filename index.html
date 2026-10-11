@@ -110,7 +110,6 @@
     .symbol {
       font-size: 20px;
     }
-    /* 설치 방법 안내 박스 스타일 */
     .guide-box {
       text-align: left;
       background: #141414;
@@ -202,18 +201,12 @@
     </div>
 
     <div class="version-info" id="versionText">
-      최신 버전 연동 완료
+      최신 버전을 불러오는 중...
     </div>
   </div>
 
   <script>
     const GITHUB_REPO = "2thancho2/MyPet";
-    const VERSION = "v1.0.8";
-
-    // 💡 v1.0.8 릴리스 파일 링크 지정
-    const macArmUrl = `https://github.com/${GITHUB_REPO}/releases/download/${VERSION}/MyPet-1.0.8-mac-arm64.dmg`;
-    const macIntelUrl = `https://github.com/${GITHUB_REPO}/releases/download/${VERSION}/MyPet-1.0.8-mac-x64.dmg`;
-    const winUrl = `https://github.com/${GITHUB_REPO}/releases/download/${VERSION}/MyPet-1.0.8-win-x64.exe`;
 
     function isAppleSilicon() {
       const canvas = document.createElement('canvas');
@@ -228,30 +221,66 @@
       return navigator.platform && navigator.platform.indexOf('Mac') >= 0 && !navigator.userAgent.includes('Intel');
     }
 
-    const mainBtn = document.getElementById('mainDownloadBtn');
-    const winBtn = document.getElementById('winDownloadBtn');
-    const macSubLinks = document.getElementById('macSubLinks');
+    async function fetchReleaseFiles() {
+      try {
+        const res = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/releases/latest`);
+        if (!res.ok) throw new Error('릴리스를 찾을 수 없습니다.');
+        const data = await res.json();
 
-    const userAgent = navigator.userAgent.toLowerCase();
-    const isWindows = userAgent.includes('win');
+        let arm64Url = '#';
+        let x64MacUrl = '#';
+        let winUrl = '#';
 
-    if (isWindows) {
-      mainBtn.href = winUrl;
-      mainBtn.innerHTML = '<span class="symbol">⊞</span> Windows 다운로드';
-      winBtn.style.display = 'none';
-    } else {
-      const silicon = isAppleSilicon();
-      mainBtn.href = silicon ? macArmUrl : macIntelUrl;
-      mainBtn.innerHTML = silicon ? '<span class="symbol"></span> macOS 다운로드 (Apple Silicon)' : '<span class="symbol"></span> macOS 다운로드 (Intel)';
-      
-      macSubLinks.style.display = 'block';
-      document.getElementById('macArmLink').href = macArmUrl;
-      document.getElementById('macIntelLink').href = macIntelUrl;
+        // 릴리스에 업로드된 파일 목록을 순회하며 실제 다운로드 주소 추출
+        data.assets.forEach(asset => {
+          const name = asset.name.toLowerCase();
+          if (name.endsWith('.dmg')) {
+            if (name.includes('arm64') || name.includes('aarch64') || name.includes('apple')) {
+              arm64Url = asset.browser_download_url;
+            } else if (name.includes('x64') || name.includes('intel')) {
+              x64MacUrl = asset.browser_download_url;
+            } else {
+              if (arm64Url === '#') arm64Url = asset.browser_download_url;
+            }
+          } else if (name.endsWith('.exe')) {
+            winUrl = asset.browser_download_url;
+          }
+        });
 
-      winBtn.href = winUrl;
+        // 파일이 하나만 있거나 구분이 안 될 경우 상호 보완
+        if (arm64Url !== '#' && x64MacUrl === '#') x64MacUrl = arm64Url;
+        if (x64MacUrl !== '#' && arm64Url === '#') arm64Url = x64MacUrl;
+
+        const mainBtn = document.getElementById('mainDownloadBtn');
+        const winBtn = document.getElementById('winDownloadBtn');
+        const macSubLinks = document.getElementById('macSubLinks');
+
+        const userAgent = navigator.userAgent.toLowerCase();
+        const isWindows = userAgent.includes('win');
+
+        if (isWindows) {
+          mainBtn.href = winUrl;
+          mainBtn.innerHTML = '<span class="symbol">⊞</span> Windows 다운로드';
+          winBtn.style.display = 'none';
+        } else {
+          const silicon = isAppleSilicon();
+          mainBtn.href = silicon ? arm64Url : x64MacUrl;
+          mainBtn.innerHTML = silicon ? '<span class="symbol"></span> macOS 다운로드 (Apple Silicon)' : '<span class="symbol"></span> macOS 다운로드 (Intel)';
+          
+          macSubLinks.style.display = 'block';
+          document.getElementById('macArmLink').href = arm64Url;
+          document.getElementById('macIntelLink').href = x64MacUrl;
+
+          winBtn.href = winUrl;
+        }
+
+        document.getElementById('versionText').textContent = `최신 버전: ${data.tag_name} 연동 완료`;
+      } catch (err) {
+        document.getElementById('versionText').textContent = 'GitHub 릴리스 정보를 불러오는 데 실패했습니다.';
+      }
     }
 
-    document.getElementById('versionText').textContent = `최신 버전: ${VERSION} 다이렉트 연동 완료`;
+    fetchReleaseFiles();
   </script>
 </body>
 </html>
