@@ -9,4 +9,6 @@ contextBridge.exposeInMainWorld('api', {
   onNote: (cb) => ipcRenderer.on('note', (_e, id, t) => cb(id, t)),
   openSettings: () => ipcRenderer.send('open-settings'),
   quit: () => ipcRenderer.send('quit'),
+  getInfo: () => ipcRenderer.invoke('info:get'),
+  convertImage: (buf, name) => ipcRenderer.invoke('image:convert', buf, name),
 });
