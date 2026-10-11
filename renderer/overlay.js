@@ -340,14 +340,14 @@ class Pet {
     this.mode = 'idle';
     this.actionUntil = tick + 40;
 
-    // 💡 변경된 수치를 cfg에 반영하고 메인 설정에 즉시 동기화 저장
+    // 💡 변경된 수치를 cfg 객체에 즉시 백업
     this.cfg.hunger = this.hunger;
     this.cfg.thirst = this.thirst;
     this.cfg.clean = this.clean;
     this.cfg.affection = this.affection;
     this.cfg.level = this.level;
-    
-    // 현재 모든 펫들의 최신 상태를 모아서 메인으로 저장 요청
+
+    // 전체 펫들의 최신 상태를 모아서 저장 요청
     const allPets = [...pets.values()].map(p => {
       p.cfg.hunger = p.hunger;
       p.cfg.thirst = p.thirst;
