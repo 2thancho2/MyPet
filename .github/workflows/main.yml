@@ -2,6 +2,11 @@ name: Build installers
 
 on:
   workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Release Tag (e.g. v1.0.4)'
+        required: false
+        type: string
   push:
     tags: ['v*']
 
@@ -28,17 +33,33 @@ jobs:
           path: |
             dist/*.dmg
             dist/*.exe
+            dist/*.zip
           if-no-files-found: error
 
   release:
-    if: startsWith(github.ref, 'refs/tags/v')
+    # 태그 푸시이거나, 수동 실행일 때 모두 동작하도록 수정 (선택사항)
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v4
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
         with:
           path: installers
           merge-multiple: true
-      - uses: softprops/action-gh-release@v2
+
+      - name: Check downloaded files
+        run: ls -la installers
+
+      - name: Release and Upload Assets
+        uses: softprops/action-gh-release@v2
         with:
-          files: installers/*
+          files: |
+            installers/*.dmg
+            installers/*.exe
+            installers/*.zip
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
