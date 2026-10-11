@@ -47,6 +47,8 @@ const SHEET_ANIMS = {
 };
 const ANIM_SPEED = { idle: 15, walk: 5, run: 3, jump: 5, excited: 6, cute: 10, sleep: 18, lick: 7, surprise: 7 };
 const FLIP_ANIMS = new Set(['walk', 'run', 'jump']);
+// 사진 펫의 프레임 전환 속도 (틱 단위, 클수록 느림). 걷기 2장이 발걸음처럼 보이도록
+const PHOTO_SPEED = { idle: 20, walk: 8, run: 5, excited: 7, sleep: 24 };
 
 // 사진 펫: 동작별 사진 묶음과, 해당 사진이 없을 때 대신 쓸 순서
 const PHOTO_STATES = ['idle', 'walk', 'run', 'excited', 'sleep'];
@@ -159,7 +161,8 @@ class Pet {
 
   advanceAnim() {
     this.animClock++;
-    if (this.animClock >= (ANIM_SPEED[this.anim] || 8)) {
+    const limit = (this.cfg.kind === 'photo' && PHOTO_SPEED[this.anim]) || ANIM_SPEED[this.anim] || 8;
+    if (this.animClock >= limit) {
       this.animClock = 0;
       if (this.cfg.kind === 'photo') {
         this.animIndex = (this.animIndex + 1) % Math.max(1, this.photoList().length);
@@ -214,6 +217,8 @@ class Pet {
         else if (a === 'lick') { sx = 1 + Math.sin(t / 2) * 0.05; }
         else if (a === 'surprise') { bob = -Math.abs(Math.sin(t / 3)) * 10; }
         else { sy = 1 + Math.sin(t / 10) * 0.02; }
+      } else if (a === 'walk' || a === 'run') {
+        bob = -Math.abs(Math.sin(t / 4)) * (a === 'run' ? 6 : 3);   // 프레임 사진에 살짝 통통 튀는 느낌만 더함
       }
     } else {
       if (a === 'walk' || a === 'run') bob = [0, -3, 1, -2][this.animIndex % 4];
