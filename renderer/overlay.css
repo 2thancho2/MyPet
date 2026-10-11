@@ -1,4 +1,4 @@
-[hidden] { display: none !important; }
+hidden] { display: none !important; }
 
 html, body {
   margin: 0;
@@ -23,7 +23,9 @@ html, body {
   touch-action: none;
 }
 .pet canvas { display: block; transform-origin: 50% 100%; pointer-events: none; }
-.pet { pointer-events: auto; }
+
+/* 흰 바탕 + 검은 요소 (이모지도 흑백 처리) */
+.bubble, .status, .item, .paper, #menu .mbtn { filter: grayscale(1); }
 
 .bubble {
   position: absolute;
@@ -33,10 +35,10 @@ html, body {
   margin-bottom: 6px;
   display: none;
   padding: 6px 12px;
-  background: rgba(255, 255, 255, .96);
-  border: 2px solid #ff8a80;
+  background: #fff;
+  border: 2px solid #111;
   border-radius: 14px;
-  color: #5d4037;
+  color: #111;
   font-size: 13px;
   font-weight: 700;
   white-space: nowrap;
@@ -52,10 +54,10 @@ html, body {
   display: none;
   width: 130px;
   padding: 8px 10px;
-  background: rgba(255, 255, 255, .95);
-  border: 2px solid #ff8a80;
+  background: #fff;
+  border: 2px solid #111;
   border-radius: 12px;
-  color: #5d4037;
+  color: #111;
   font-size: 11px;
   font-weight: 700;
   pointer-events: none;
@@ -63,8 +65,8 @@ html, body {
 .status.left { left: auto; right: 100%; margin-left: 0; margin-right: 8px; }
 .status .title { margin-bottom: 4px; }
 .status .row { margin-top: 4px; }
-.status .bar { height: 6px; margin-top: 2px; background: #eee; border-radius: 3px; overflow: hidden; }
-.status .bar i { display: block; height: 100%; }
+.status .bar { height: 6px; margin-top: 2px; background: #e4e4e4; border-radius: 3px; overflow: hidden; }
+.status .bar i { display: block; height: 100%; background: #111; }
 
 /* 아이템과 쪽지 */
 .item, .paper { position: absolute; pointer-events: auto; touch-action: none; }
@@ -72,8 +74,8 @@ html, body {
   width: 56px; height: 56px;
   display: flex; align-items: center; justify-content: center;
   font-size: 26px;
-  background: rgba(255, 255, 255, .92);
-  border: 2px solid #ffd6cc;
+  background: #fff;
+  border: 2px solid #111;
   border-radius: 50%;
   cursor: grab;
 }
@@ -83,10 +85,10 @@ html, body {
   padding: 8px;
   display: flex; align-items: center; justify-content: center;
   text-align: center;
-  background: #fffde7;
-  border: 1.5px solid #d7ccc8;
+  background: #fff;
+  border: 2px solid #111;
   border-radius: 8px;
-  color: #5d4037;
+  color: #111;
   font-size: 12px;
   font-weight: 700;
   word-break: break-all;
@@ -101,20 +103,20 @@ html, body {
   width: 46px; height: 46px;
   padding: 0;
   font-size: 22px;
-  background: rgba(255, 253, 231, .95);
-  border: 2px solid #ffd6cc;
+  background: #fff;
+  border: 2px solid #111;
   border-radius: 50%;
   cursor: pointer;
   transition: transform .1s, background .1s;
 }
-#menu .mbtn:hover { transform: scale(1.25); background: #ff8a80; border-color: #ff5252; }
+#menu .mbtn:hover { transform: scale(1.25); background: #e4e4e4; border-width: 3px; }
 #menu .label {
   position: absolute;
   left: 85px; top: 132px;
   width: 130px; height: 36px;
   line-height: 36px;
   text-align: center;
-  background: #ff8a80;
+  background: #111;
   color: #fff;
   font-size: 13px;
   font-weight: 700;
