@@ -11,18 +11,7 @@ const DEFAULTS = {
   chaseMouse: true,
   interactions: true,
   launchAtLogin: false,
-  pets: [{ 
-    id: 'default', 
-    name: '콩이', 
-    kind: 'sheet', 
-    personality: 60, 
-    hue: 0,
-    hunger: 80,
-    thirst: 80,
-    clean: 80,
-    affection: 10,
-    level: 1
-  }],
+  pets: [ ],
 };
 const clone = (o) => JSON.parse(JSON.stringify(o));
 let settings = clone(DEFAULTS);
