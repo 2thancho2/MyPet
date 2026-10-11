@@ -62,7 +62,7 @@ const sheetImg = new Image();
 let sheetState = 'loading';
 sheetImg.onload = () => { sheetState = 'ok'; };
 sheetImg.onerror = () => { sheetState = 'missing'; };   // 이미지가 없으면 이모지로 대체
-sheetImg.src = '../assets/desktop_pet_sprites.png';
+sheetImg.src = '../assets/desktop__sprites.png';
 
 const ICONS = { food: '🥣', water: '🥛', comb: '🧹' };
 const NAMES = { food: '먹이 그릇', water: '물그릇', comb: '빗' };
@@ -72,8 +72,11 @@ class Pet {
   constructor(cfg) {
     this.cfg = cfg;
     this.id = cfg.id;
-    this.hunger = 80; this.thirst = 80; this.clean = 80;
-    this.affection = 10; this.level = 1;
+    this.hunger = cfg.hunger ?? 80;
+    this.thirst = cfg.thirst ?? 80;
+    this.clean = cfg.clean ?? 80;
+    this.affection = cfg.affection ?? 10;
+    this.level = cfg.level ?? 1;
 
     this.mode = 'idle';
     this.anim = 'idle'; this.animIndex = 0; this.animClock = 0;
