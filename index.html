@@ -59,7 +59,7 @@
     }
     .btn-group {
       display: flex;
-      gap: 16px;
+      gap: 12px;
       justify-content: center;
       flex-wrap: wrap;
       margin-bottom: 20px;
@@ -68,14 +68,14 @@
       background-color: #fff;
       color: #0b0b0b;
       border: none;
-      padding: 16px 32px;
-      font-size: 16px;
+      padding: 16px 28px;
+      font-size: 15px;
       font-weight: 700;
       border-radius: 14px;
       cursor: pointer;
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
       text-decoration: none;
       transition: transform 0.2s, background-color 0.2s, box-shadow 0.2s;
       box-shadow: 0 4px 14px rgba(255,255,255,0.1);
@@ -89,10 +89,22 @@
       background-color: #1a1a1a;
       color: #fff;
       border: 2px solid #333;
+      box-shadow: none;
     }
     .download-btn.secondary:hover {
       background-color: #2a2a2a;
       border-color: #555;
+    }
+    .download-btn.github-btn {
+      background-color: #161b22;
+      color: #c9d1d9;
+      border: 1px solid #30363d;
+      box-shadow: none;
+    }
+    .download-btn.github-btn:hover {
+      background-color: #21262d;
+      color: #fff;
+      border-color: #8b949e;
     }
     .sub-links {
       font-size: 14px;
@@ -108,7 +120,7 @@
       color: #fff;
     }
     .symbol {
-      font-size: 20px;
+      font-size: 18px;
     }
     .guide-box {
       text-align: left;
@@ -162,13 +174,18 @@
     <h1>MyPet</h1>
     <p class="subtitle">바쁜 화면 위에서 나만의 귀여운 반려동물과 함께하세요.<br>가볍고 직관적인 인터페이스로 힐링을 선사합니다.</p>
 
-    <!-- 메인 다운로드 버튼 -->
+    <!-- 다운로드 및 GitHub 버튼 그룹 -->
     <div class="btn-group">
       <a id="mainDownloadBtn" href="#" class="download-btn">
         <span class="symbol"></span> macOS 다운로드
       </a>
       <a id="winDownloadBtn" href="#" class="download-btn secondary">
         <span class="symbol">⊞</span> Windows 다운로드
+      </a>
+      <a href="https://github.com/2thancho2/MyPet" target="_blank" class="download-btn github-btn">
+        <svg height="20" width="20" viewBox="0 0 16 16" fill="currentColor">
+          <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.28.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path>
+        </svg> GitHub에서 보기
       </a>
     </div>
 
@@ -231,7 +248,6 @@
         let x64MacUrl = '#';
         let winUrl = '#';
 
-        // 릴리스에 업로드된 파일 목록을 순회하며 실제 다운로드 주소 추출
         data.assets.forEach(asset => {
           const name = asset.name.toLowerCase();
           if (name.endsWith('.dmg')) {
@@ -247,7 +263,6 @@
           }
         });
 
-        // 파일이 하나만 있거나 구분이 안 될 경우 상호 보완
         if (arm64Url !== '#' && x64MacUrl === '#') x64MacUrl = arm64Url;
         if (x64MacUrl !== '#' && arm64Url === '#') arm64Url = x64MacUrl;
 
