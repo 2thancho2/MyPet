@@ -186,15 +186,15 @@ ipcMain.on('quit', () => app.quit());
 // ───────────── 앱 시작 ─────────────
 app.whenReady().then(() => {
   settingsPath = path.join(app.getPath('userData'), 'settings.json');
-  const firstRun = !fs.existsSync(settingsPath);
   loadSettings();
   applySystemSettings();
-  if (process.platform === 'darwin' && app.dock) app.dock.hide(); // Dock 아이콘 숨김
+  if (process.platform === 'darwin' && app.dock) app.dock.hide();
   createOverlay();
   createTray();
   screen.on('display-metrics-changed', fitOverlay);
   screen.on('display-removed', fitOverlay);
-  if (firstRun) openSettings();   // 처음 실행하면 설정 창을 바로 보여줌
+  
+  openSettings(); // 👈 앱을 켤 때 무조건 설정 창을 바로 띄움!
 });
 
 // 창이 모두 닫혀도 트레이로 계속 실행
